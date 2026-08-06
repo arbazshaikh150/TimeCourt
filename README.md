@@ -54,3 +54,21 @@ TimeCourt is optimized for fast fact retrieval by organizing data around the sub
 
 ---
 ![Query Optimization](/assest/image7.png)
+
+---
+## 🔄 Impact Analysis
+
+TimeCourt tracks the exact facts used to produce every decision. When a new fact version is published, only the affected decisions are identified and re-evaluated, avoiding unnecessary recomputation across the entire dataset.
+
+---
+
+![Impact Analysis](/assest/image8.png)
+
+---
+## ⏱️ Temporal Indexing
+
+TimeCourt minimizes re-evaluation by indexing decisions based on their evaluation time. Since a fact only affects decisions within its validity period, the engine narrows the search space to the relevant time window instead of scanning the entire decision history.
+
+---
+
+![alt text](/assest/image9.png)
