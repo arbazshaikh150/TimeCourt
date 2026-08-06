@@ -46,3 +46,11 @@ TimeCourt stores facts as immutable, versioned records to guarantee consistency 
 
 ---
 ![Fact Storage](/assest/image6.png)
+
+---
+## ⚡ Query Optimization
+
+TimeCourt is optimized for fast fact retrieval by organizing data around the subject and fact key. Instead of scanning historical records, the engine efficiently locates the latest applicable fact version for decision evaluation.
+
+---
+![Query Optimization](/assest/image7.png)
