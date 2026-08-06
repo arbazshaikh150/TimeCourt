@@ -20,4 +20,29 @@ The decision engine is built on immutable facts, versioned rules, and determinis
 TimeCourt is designed to manage immutable facts and versioned rules while providing deterministic, timestamp-aware decisions. The system emphasizes correctness, scalability, and historical reproducibility.
 
 ---
-![alt text](/assest/image3.png)
+![Requirements](/assest/image3.png)
+
+---
+## 🗄️ Data Model & APIs
+
+TimeCourt exposes a simple API surface built on immutable, versioned data models. Every decision is persisted and can be reproduced or explained at any point in time.
+
+---
+![Data Model & APIs](/assest/image4.png)
+
+---
+## 📈 Rule Versioning
+
+TimeCourt models rules as immutable, versioned entities. Each rule version maintains a reference to its predecessor, enabling complete historical traceability and deterministic evaluation for any point in time.
+
+---
+
+![Rule Versioning](/assest/image5.png)
+
+---
+## 💾 Fact Storage
+
+TimeCourt stores facts as immutable, versioned records to guarantee consistency and prevent data loss. Every fact is preserved exactly as received, ensuring that future decisions remain deterministic and historically reproducible.
+
+---
+![Fact Storage](/assest/image6.png)
