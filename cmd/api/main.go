@@ -8,6 +8,7 @@ import (
 	"github.com/arbazshaikh150/TimeCourt/internal/config"
 	"github.com/arbazshaikh150/TimeCourt/internal/database"
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
+	"github.com/arbazshaikh150/TimeCourt/internal/server"
 )
 
 func main() {
@@ -51,5 +52,16 @@ func main() {
 	}
 
 	fmt.Println("Database migration successful")
+
+	// Creating a server
+	fmt.Println("Creating the server")
+	httpServer := server.NewServer(cfg.ServerPort)
+
+	fmt.Println("Starting TimeCourt server")
+	fmt.Printf("Server is listening at port: %s\n", cfg.ServerPort)
+
+	if err := httpServer.Start(); err != nil {
+		log.Fatal("HTTP server stopped:", err)
+	}
 
 }

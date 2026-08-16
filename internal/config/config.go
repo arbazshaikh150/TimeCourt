@@ -2,13 +2,13 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
 // Creating the necessary config information
 type Config struct {
 	DatabaseURL string
+	ServerPort  string
 }
 
 func Load() (*Config, error) {
@@ -35,9 +35,10 @@ func Load() (*Config, error) {
 		database,
 	)
 
-	log.Println("Connection Url is created");
+	port = os.Getenv("SERVER_PORT")
 
 	return &Config{
 		DatabaseURL: databaseURL,
+		ServerPort:  port,
 	}, nil
 }
