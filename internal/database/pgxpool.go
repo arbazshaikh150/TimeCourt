@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Create a database will pooling
@@ -28,6 +30,13 @@ func NewPool(ctx context.Context, dsn string) (*Database, error) {
 	return &Database{
 		Pool: pool,
 	}, nil
+}
+
+func NewGorm(databaseURL string) (*gorm.DB, error) {
+	return gorm.Open(
+		postgres.Open(databaseURL),
+		&gorm.Config{},
+	)
 }
 
 func (p *Database) Close() {
