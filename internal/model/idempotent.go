@@ -18,9 +18,9 @@ type Idempotent struct {
 	ResourceID       uuid.UUID `gorm:"type:uuid;not null;index" json:"resource_id"`
 	ResourceValueRef uuid.UUID `gorm:"type:uuid;not null" json:"resource_value"`
 
-	CurrentTime time.Time `gorm:"not null;autoCreateTime" json:"time"`
-
-	Status enums.IdempotentStatus `gorm:"type:varchar(30);not null;index" json:"status"`
+	CurrentTime   time.Time              `gorm:"type:timestamptz;not null;default:CURRENT_TIMESTAMP" json:"time"`
+	CommittedTime *time.Time             `gorm:"type:timestamptz" json:"committed_time"`
+	Status        enums.IdempotentStatus `gorm:"type:varchar(30);not null;index" json:"status"`
 }
 
 func (Idempotent) TableName() string {

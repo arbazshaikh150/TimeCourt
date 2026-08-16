@@ -145,10 +145,12 @@ func (r *PgIdempotentRepository) Commit(
 		ctx,
 		`
 		UPDATE idempotency_records
-		SET status = $1
+		SET
+			status = $1,
+			committed_time = CURRENT_TIMESTAMP
 		WHERE idempotent_key = $2
-		 AND source = $3
-		 AND status = $4
+			AND source = $3
+			AND status = $4
 		`,
 		enums.IdempotentSuccess,
 		idempotentKey,
