@@ -19,6 +19,7 @@ type IdempotentRepository interface {
 	// Another function for acquiring lock
 	// Return the source which acquires the lock
 	Lock(ctx context.Context, idempotentKey uuid.UUID, source string) (*dto.IdempotentResult, error)
+	Commit(ctx context.Context, idempotentKey uuid.UUID, source string) error
 }
 
 type PgIdempotentRepository struct {
@@ -66,7 +67,7 @@ func (r *PgIdempotentRepository) Get(ctx context.Context, idempotentKey uuid.UUI
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			fmt.Println("No rows found for the given idempotent key : %s", idempotentKey)
+			fmt.Printf("No rows found for the given idempotent key : %s\n", idempotentKey)
 			return nil, err
 		}
 
@@ -131,4 +132,41 @@ func (r *PgIdempotentRepository) Lock(ctx context.Context, idempotentKey uuid.UU
 	result.Acquired = false
 
 	return &result, nil
+}
+
+// Adding the commit function
+func (r *PgIdempotentRepository) Commit(
+	ctx context.Context,
+	idempotentKey uuid.UUID,
+	source string,
+) error {
+
+	tag, err := r.db.Exec(
+		ctx,
+		`
+		UPDATE idempotency_records
+		SET status = $1
+		WHERE idempotent_key = $2
+		 AND source = $3
+		 AND status = $4
+		`,
+		enums.IdempotentSuccess,
+		idempotentKey,
+		source,
+		enums.IdempotentProcessing,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf(
+			"idempotency record cannot be committed: key=%s source=%s",
+			idempotentKey,
+			source,
+		)
+	}
+	fmt.Println("Successfully Committed Into Idempotent Key")
+	return nil
 }
