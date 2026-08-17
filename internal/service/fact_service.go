@@ -41,8 +41,10 @@ func (s *FactService) Create(
 	factInformation *model.FactInformation,
 	idempotentKey uuid.UUID,
 ) error {
+	id := uuid.New()
+	factInformation.FactInformationID = id
+	idempotentResult, err := s.idempotentService.Lock(ctx, idempotentKey, factInformation.Source, factInformation.TenantID)
 
-	idempotentResult, err := s.idempotentService.Lock(ctx, idempotentKey, factInformation.Source)
 	if err != nil {
 		fmt.Printf("failed to acquire idempotency lock for key %s: %v\n", idempotentKey, err)
 		return fmt.Errorf("acquire idempotency lock for key %s: %w", idempotentKey, err)

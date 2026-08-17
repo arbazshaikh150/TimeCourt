@@ -9,8 +9,7 @@ import (
 type FactInformation struct {
 	FactInformationID uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 
-	FactID   uuid.UUID `gorm:"type:uuid;not null;index" json:"fact_id"`
-	TenantID string    `gorm:"type:text;not null;index" json:"tenant_id"`
+	TenantID string `gorm:"type:text;not null;index" json:"tenant_id"`
 
 	FactKey     string `gorm:"type:text;not null;index" json:"fact_key"`
 	FactVersion int64  `gorm:"not null" json:"fact_version"`
@@ -27,8 +26,7 @@ type FactInformation struct {
 	Confidence string `gorm:"type:text" json:"confidence"`
 	Source     string `gorm:"type:text;not null" json:"source"`
 
-	// PostgreSQL tstzrange column.
-	EffectivePeriod string `gorm:"type:tstzrange;not null" json:"effective_period"`
+	EffectivePeriod string `gorm:"type:tstzrange;->" json:"effective_period"`
 }
 
 func (FactInformation) TableName() string {

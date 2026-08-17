@@ -18,7 +18,7 @@ type IdempotentRepository interface {
 	Get(ctx context.Context, idempotentKey uuid.UUID) (*model.Idempotent, error)
 	// Another function for acquiring lock
 	// Return the source which acquires the lock
-	Lock(ctx context.Context, idempotentKey uuid.UUID, source string) (*dto.IdempotentResult, error)
+	Lock(ctx context.Context, idempotentKey uuid.UUID, source string , tenant_id string) (*dto.IdempotentResult, error)
 	Commit(ctx context.Context, idempotentKey uuid.UUID, source string) error
 }
 
@@ -77,9 +77,8 @@ func (r *PgIdempotentRepository) Get(ctx context.Context, idempotentKey uuid.UUI
 	return &idempotent, nil
 }
 
-func (r *PgIdempotentRepository) Lock(ctx context.Context, idempotentKey uuid.UUID, source string) (*dto.IdempotentResult, error) {
+func (r *PgIdempotentRepository) Lock(ctx context.Context, idempotentKey uuid.UUID, source string , tenant_id string) (*dto.IdempotentResult, error) {
 	var result dto.IdempotentResult
-
 	// Try to create the idempotency record.
 	// Successfully inserting it means this request acquired the lock.
 	err := r.db.QueryRow(
@@ -88,15 +87,17 @@ func (r *PgIdempotentRepository) Lock(ctx context.Context, idempotentKey uuid.UU
 		INSERT INTO idempotency_records (
 			idempotent_key,
 			source,
-			status
+			status,
+			tenant_id
 		)
-		VALUES ($1, $2, $3)
+		VALUES ($1, $2, $3 , $4)
 		ON CONFLICT (idempotent_key) DO NOTHING
 		RETURNING source, status
 		`,
 		idempotentKey,
 		source,
 		enums.IdempotentProcessing,
+		tenant_id,
 	).Scan(
 		&result.Source,
 		&result.Status,

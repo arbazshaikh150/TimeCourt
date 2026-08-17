@@ -36,12 +36,14 @@ func (s *IdempotentService) Lock(
 	ctx context.Context,
 	idempotentKey uuid.UUID,
 	source string,
+	tenant_id string,
 ) (*dto.IdempotentResult, error) {
 
 	return s.repository.Lock(
 		ctx,
 		idempotentKey,
 		source,
+		tenant_id,
 	)
 }
 

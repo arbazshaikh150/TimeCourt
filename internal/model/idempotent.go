@@ -10,15 +10,15 @@ import (
 type Idempotent struct {
 	IdempotentKey uuid.UUID `gorm:"type:uuid;primaryKey" json:"idempotent_key"`
 
-	TenantID string `gorm:"type:text;not null;index" json:"tenant_id"`
-	Source   string `gorm:"type:text;not null" json:"source"`
+	TenantID string `gorm:"type:text;index" json:"tenant_id"`
+	Source   string `gorm:"type:text" json:"source"`
 
-	RequestDigest string `gorm:"type:text;not null" json:"request_digest"`
+	RequestDigest string `gorm:"type:text" json:"request_digest"`
 
-	ResourceID       uuid.UUID `gorm:"type:uuid;not null;index" json:"resource_id"`
-	ResourceValueRef uuid.UUID `gorm:"type:uuid;not null" json:"resource_value"`
+	ResourceID       uuid.UUID `gorm:"type:uuid;index" json:"resource_id"`
+	ResourceValueRef uuid.UUID `gorm:"type:uuid" json:"resource_value"`
 
-	CurrentTime   time.Time              `gorm:"type:timestamptz;not null;default:CURRENT_TIMESTAMP" json:"time"`
+	CurrentTime   time.Time              `gorm:"type:timestamptz;default:CURRENT_TIMESTAMP" json:"time"`
 	CommittedTime *time.Time             `gorm:"type:timestamptz" json:"committed_time"`
 	Status        enums.IdempotentStatus `gorm:"type:varchar(30);not null;index" json:"status"`
 }

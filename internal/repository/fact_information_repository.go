@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/arbazshaikh150/TimeCourt/internal/enums"
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
@@ -32,7 +33,6 @@ func (r *pgxFactInformationRepository) Get(ctx context.Context, factInformationI
 		`
 		SELECT
 			fact_information_id,
-			fact_id,
 			tenant_id,
 			fact_key,
 			fact_version,
@@ -51,7 +51,6 @@ func (r *pgxFactInformationRepository) Get(ctx context.Context, factInformationI
 		factInformationID,
 	).Scan(
 		&factInformation.FactInformationID,
-		&factInformation.FactID,
 		&factInformation.TenantID,
 		&factInformation.FactKey,
 		&factInformation.FactVersion,
@@ -100,7 +99,7 @@ func (r *pgxFactInformationRepository) Create(
 		subject_id,
 		latest_version
 	)
-	VALUES ($1, 1)
+	VALUES ($1, $2, 1)
 	ON CONFLICT (fact_key, subject_id)
 	DO UPDATE
 	SET latest_version = fact_versions.latest_version + 1
@@ -111,48 +110,48 @@ func (r *pgxFactInformationRepository) Create(
 	).Scan(&latestVersion)
 
 	if err != nil {
+		fmt.Println("Insert error", err)
 		return err
 	}
+
+	// Insert fact information.
+	// Set the generated version on the fact.
+	factInformation.FactVersion = latestVersion
 
 	// Insert fact information.
 	_, err = tx.Exec(
 		ctx,
 		`
-		INSERT INTO fact_information (
-			fact_information_id,
-			fact_id,
-			tenant_id,
-			fact_key,
-			fact_version,
-			subject_id,
-			fact_effective_start_time,
-			fact_effective_end_time,
-			knowledge_time,
-			fact_value,
-			authority,
-			confidence,
-			source,
-			effective_period
-		)
-		VALUES (
-			$1,
-			$2,
-			$3,
-			$4,
-			$5,
-			$6,
-			$7,
-			$8,
-			$9,
-			$10,
-			$11,
-			$12,
-			$13,
-			$14
-		)
-		`,
+	INSERT INTO fact_information (
+		fact_information_id,
+		tenant_id,
+		fact_key,
+		fact_version,
+		subject_id,
+		fact_effective_start_time,
+		fact_effective_end_time,
+		knowledge_time,
+		fact_value,
+		authority,
+		confidence,
+		source
+	)
+	VALUES (
+		$1,
+		$2,
+		$3,
+		$4,
+		$5,
+		$6,
+		$7,
+		$8,
+		$9,
+		$10,
+		$11,
+		$12
+	)
+	`,
 		factInformation.FactInformationID,
-		factInformation.FactID,
 		factInformation.TenantID,
 		factInformation.FactKey,
 		factInformation.FactVersion,
@@ -164,9 +163,10 @@ func (r *pgxFactInformationRepository) Create(
 		factInformation.Authority,
 		factInformation.Confidence,
 		factInformation.Source,
-		factInformation.EffectivePeriod,
 	)
+
 	if err != nil {
+		fmt.Println("Error in creating the fact : ", err)
 		return err
 	}
 
