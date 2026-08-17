@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/arbazshaikh150/TimeCourt/internal/enums"
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,6 +11,11 @@ import (
 
 type FactInformationRepository interface {
 	Get(ctx context.Context, factInformationID uuid.UUID) (*model.FactInformation, error)
+	Create(
+		ctx context.Context,
+		factInformation *model.FactInformation,
+		idempotentKey uuid.UUID,
+	) error
 }
 
 type pgxFactInformationRepository struct{ db *pgxpool.Pool }
@@ -75,6 +81,7 @@ func (r *pgxFactInformationRepository) Get(ctx context.Context, factInformationI
 func (r *pgxFactInformationRepository) Create(
 	ctx context.Context,
 	factInformation *model.FactInformation,
+	idempotentKey uuid.UUID,
 ) error {
 	// Transaction begins
 	tx, err := r.db.Begin(ctx)
@@ -158,6 +165,22 @@ func (r *pgxFactInformationRepository) Create(
 		factInformation.Confidence,
 		factInformation.Source,
 		factInformation.EffectivePeriod,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(
+		ctx,
+		`
+		UPDATE idempotency_records
+		SET
+			status = $1,
+			committed_time = CURRENT_TIMESTAMP
+		WHERE idempotent_key = $2
+		`,
+		enums.IdempotentSuccess,
+		idempotentKey,
 	)
 	if err != nil {
 		return err
