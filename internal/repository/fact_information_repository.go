@@ -176,10 +176,12 @@ func (r *pgxFactInformationRepository) Create(
 		UPDATE idempotency_records
 		SET
 			status = $1,
+			resource_value_ref = $2,
 			committed_time = CURRENT_TIMESTAMP
-		WHERE idempotent_key = $2
+		WHERE idempotent_key = $3
 		`,
 		enums.IdempotentSuccess,
+		factInformation.FactInformationID,
 		idempotentKey,
 	)
 	if err != nil {

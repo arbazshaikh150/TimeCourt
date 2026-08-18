@@ -15,6 +15,9 @@ export function insertFact() {
         payload,
         idempotencyKey
     );
+
+    // console.log(`STATUS: ${response.status}`);
+    // console.log(`BODY: ${response.body}`);
     // Check assertion
     checkFactInsertion(response);
 
