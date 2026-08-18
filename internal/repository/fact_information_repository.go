@@ -188,3 +188,8 @@ func (r *pgxFactInformationRepository) Create(
 
 	return tx.Commit(ctx)
 }
+
+// Method for finding the overlapping fact for the given factkey + subjectid
+// Given a date and then finding the fact that overlaps with it
+// TODO : (RULE VERSION AND THEIR CORRESPONDING FUNCTIONS AND THE FACT QUERY FUNCTION )
+// TODO : SHOULD BE DONE TODAY.
