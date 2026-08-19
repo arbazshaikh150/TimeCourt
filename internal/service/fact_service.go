@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
 	"github.com/arbazshaikh150/TimeCourt/internal/repository"
@@ -62,4 +63,22 @@ func (s *FactService) Create(
 	}
 
 	return s.repository.Create(ctx, factInformation, idempotentKey)
+}
+
+// Fetching from the repostory and then sending the response
+func (s *FactService) FindByEffectiveTime(
+	ctx context.Context,
+	factKey string,
+	subjectID string,
+	timeWhereToCheck time.Time,
+	timeWhenToCheck time.Time,
+) ([]*model.FactInformation, error) {
+	fmt.Println("Fetching from the repository")
+	return s.repository.FindByEffectiveTime(
+		ctx,
+		factKey,
+		subjectID,
+		timeWhereToCheck,
+		timeWhenToCheck,
+	)
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/arbazshaikh150/TimeCourt/internal/enums"
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
@@ -17,6 +18,13 @@ type FactInformationRepository interface {
 		factInformation *model.FactInformation,
 		idempotentKey uuid.UUID,
 	) error
+	FindByEffectiveTime(
+		ctx context.Context,
+		factKey string,
+		subjectID string,
+		timeWhereToCheck time.Time,
+		timeWhenToCheck time.Time,
+	) ([]*model.FactInformation, error)
 }
 
 type pgxFactInformationRepository struct{ db *pgxpool.Pool }
@@ -193,5 +201,80 @@ func (r *pgxFactInformationRepository) Create(
 
 // Method for finding the overlapping fact for the given factkey + subjectid
 // Given a date and then finding the fact that overlaps with it
-// TODO : (RULE VERSION AND THEIR CORRESPONDING FUNCTIONS AND THE FACT QUERY FUNCTION )
-// TODO : SHOULD BE DONE TODAY.
+// Require two parameter , What was my timewheretocheck and which time i have to check timewhentocheck
+// Also (timewhentocheck <= knowledge time) and timewheretocheck must overlap with the effectivetimestamp
+// It must use the proper indexing
+func (r *pgxFactInformationRepository) FindByEffectiveTime(
+	ctx context.Context,
+	factKey string,
+	subjectID string,
+	timeWhereToCheck time.Time,
+	timeWhenToCheck time.Time,
+) ([]*model.FactInformation, error) {
+
+	rows, err := r.db.Query(
+		ctx,
+		`
+		SELECT
+			fact_information_id,
+			tenant_id,
+			fact_key,
+			fact_version,
+			subject_id,
+			fact_effective_start_time,
+			fact_effective_end_time,
+			knowledge_time,
+			fact_value,
+			authority,
+			confidence,
+			source,
+			effective_period::text
+		FROM fact_information
+		WHERE fact_key = $1
+			AND subject_id = $2
+			AND effective_period @> $3::timestamptz
+			AND knowledge_time <= $4
+		`,
+		factKey,
+		subjectID,
+		timeWhereToCheck,
+		timeWhenToCheck,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	facts := make([]*model.FactInformation, 0)
+
+	for rows.Next() {
+		factInformation := &model.FactInformation{}
+
+		err := rows.Scan(
+			&factInformation.FactInformationID,
+			&factInformation.TenantID,
+			&factInformation.FactKey,
+			&factInformation.FactVersion,
+			&factInformation.SubjectID,
+			&factInformation.FactEffectiveStartTime,
+			&factInformation.FactEffectiveEndTime,
+			&factInformation.KnowledgeTime,
+			&factInformation.FactValue,
+			&factInformation.Authority,
+			&factInformation.Confidence,
+			&factInformation.Source,
+			&factInformation.EffectivePeriod,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		facts = append(facts, factInformation)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return facts, nil
+}

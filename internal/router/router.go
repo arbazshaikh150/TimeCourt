@@ -19,4 +19,9 @@ func RegisterRoutes(
 		"POST /facts",
 		factHandler.Create,
 	)
+
+	mux.HandleFunc(
+		"GET /facts/details",
+		factHandler.FindByEffectiveTime,
+	)
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
 	"github.com/arbazshaikh150/TimeCourt/internal/service"
@@ -109,6 +110,107 @@ func (h *FactHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(factInformation); err != nil {
+		http.Error(
+			w,
+			"failed to encode response",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+}
+
+// Fetching the fact handler
+func (h *FactHandler) FindByEffectiveTime(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	query := r.URL.Query()
+
+	factKey := query.Get("fact_key")
+	if factKey == "" {
+		http.Error(
+			w,
+			"missing fact_key",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	subjectID := query.Get("subject_id")
+	if subjectID == "" {
+		http.Error(
+			w,
+			"missing subject_id",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	timeWhereToCheckString := query.Get("time_where_to_check")
+	if timeWhereToCheckString == "" {
+		http.Error(
+			w,
+			"missing time_where_to_check",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	timeWhenToCheckString := query.Get("time_when_to_check")
+	if timeWhenToCheckString == "" {
+		http.Error(
+			w,
+			"missing time_when_to_check",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	timeWhereToCheck, err := time.Parse(
+		time.RFC3339,
+		timeWhereToCheckString,
+	)
+	if err != nil {
+		http.Error(
+			w,
+			"invalid time_where_to_check",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	timeWhenToCheck, err := time.Parse(
+		time.RFC3339,
+		timeWhenToCheckString,
+	)
+	if err != nil {
+		http.Error(
+			w,
+			"invalid time_when_to_check",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	facts, err := h.service.FindByEffectiveTime(
+		r.Context(),
+		factKey,
+		subjectID,
+		timeWhereToCheck,
+		timeWhenToCheck,
+	)
+	if err != nil {
+		http.Error(
+			w,
+			err.Error(),
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(facts); err != nil {
 		http.Error(
 			w,
 			"failed to encode response",
