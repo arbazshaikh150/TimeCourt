@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/arbazshaikh150/TimeCourt/internal/dto"
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
@@ -140,4 +141,32 @@ func (r *RuleService) Create(ctx context.Context, req *dto.CreateRuleRequest, id
 	}
 
 	return nil
+}
+
+func (r *RuleService) Find(
+	ctx context.Context,
+	ruleKey string,
+	subjectID string,
+	timeWhenToCheck time.Time,
+	timeWhereToCheck time.Time,
+) (*dto.RuleFetchDetails, error) {
+
+	ruleDetails, err := r.repository.Find(
+		ctx,
+		ruleKey,
+		subjectID,
+		timeWhenToCheck,
+		timeWhereToCheck,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to find rule %s for subject %s: %w",
+			ruleKey,
+			subjectID,
+			err,
+		)
+	}
+
+	return ruleDetails, nil
 }

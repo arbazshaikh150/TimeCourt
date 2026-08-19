@@ -31,4 +31,9 @@ func RegisterRoutes(
 		"POST /rules",
 		ruleHandler.Create,
 	)
+
+	mux.HandleFunc(
+		"GET /rules/find",
+		ruleHandler.Find,
+	)
 }
