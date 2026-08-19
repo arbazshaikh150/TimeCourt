@@ -1,5 +1,5 @@
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-function randomEffectivePeriod() {
+export function randomEffectivePeriod() {
     // Start somewhere between Jan 1, 2026 and Dec 31, 2026
     const startOfYear = new Date('2026-01-01T00:00:00Z').getTime();
     const endOfYear = new Date('2026-12-31T23:59:59Z').getTime();
