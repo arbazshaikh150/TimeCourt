@@ -65,8 +65,20 @@ func (a *App) Run() error {
 	factService := service.NewFactService(factRepository, *idempotentService)
 	factHandler := handler.NewFactHandler(*factService)
 
+	// Rule handler
+	ruleRepository := repository.NewRuleTableRepository(
+		db.Pool,
+	)
+	ruleService := service.NewRuleService(
+		ruleRepository,
+		*idempotentService,
+	)
+	ruleHandler := handler.NewRuleHandler(
+		ruleService,
+	)
+
 	mux := http.NewServeMux()
-	router.RegisterRoutes(mux, factHandler)
+	router.RegisterRoutes(mux, factHandler, ruleHandler)
 
 	httpServer := server.NewServer(cfg.ServerPort, mux)
 	fmt.Printf("Server is listening at port %s\n", cfg.ServerPort)

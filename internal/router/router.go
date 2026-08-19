@@ -9,6 +9,7 @@ import (
 func RegisterRoutes(
 	mux *http.ServeMux,
 	factHandler *handler.FactHandler,
+	ruleHandler *handler.RuleHandler,
 ) {
 	mux.HandleFunc(
 		"GET /facts/{factInformationID}",
@@ -23,5 +24,11 @@ func RegisterRoutes(
 	mux.HandleFunc(
 		"GET /facts/details",
 		factHandler.FindByEffectiveTime,
+	)
+
+	// Rule handler
+	mux.HandleFunc(
+		"POST /rules",
+		ruleHandler.Create,
 	)
 }

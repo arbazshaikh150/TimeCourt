@@ -4,23 +4,46 @@ import (
 	"context"
 
 	"github.com/arbazshaikh150/TimeCourt/internal/model"
-	"gorm.io/gorm"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RuleVersionRepository interface {
 	Get(ctx context.Context, ruleKey string) (*model.RuleVersion, error)
 }
 
-type GormRuleVersionRepository struct{ db *gorm.DB }
+type PgxRuleVersionRepository struct{ db *pgxpool.Pool }
 
-func NewRuleVersionRepository(db *gorm.DB) RuleVersionRepository {
-	return &GormRuleVersionRepository{db: db}
+func NewRuleVersionRepository(db *pgxpool.Pool) RuleVersionRepository {
+	return &PgxRuleVersionRepository{db: db}
 }
 
-func (r *GormRuleVersionRepository) Get(ctx context.Context, ruleKey string) (*model.RuleVersion, error) {
+// TODO : IDEMPOTENT BASED FETCHING IS PENDING ( for successful queries retry )
+func (r *PgxRuleVersionRepository) Get(
+	ctx context.Context,
+	ruleKey string,
+) (*model.RuleVersion, error) {
+
 	var ruleVersion model.RuleVersion
-	if err := r.db.WithContext(ctx).First(&ruleVersion, "rule_key = ?", ruleKey).Error; err != nil {
+
+	err := r.db.QueryRow(
+		ctx,
+		`
+		SELECT
+			rule_key,
+			rule_version_id
+		FROM rule_versions
+		WHERE rule_key = $1
+		`,
+		ruleKey,
+	).Scan(
+		&ruleVersion.RuleKey,
+		&ruleVersion.RuleVersionID,
+	)
+
+	if err != nil {
 		return nil, err
 	}
+
 	return &ruleVersion, nil
 }
+

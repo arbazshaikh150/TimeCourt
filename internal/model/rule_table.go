@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// TODO : Effective timestamp is pending
 type RuleTable struct {
 	RuleID   uuid.UUID `gorm:"type:uuid;primaryKey" json:"rule_id"`
 	TenantID string    `gorm:"type:text;not null;index" json:"tenant_id"`
@@ -17,8 +18,8 @@ type RuleTable struct {
 	EffectiveStartTime time.Time `gorm:"not null" json:"effective_start_time"`
 	EffectiveEndTime   time.Time `gorm:"not null" json:"effective_end_time"`
 
-	ResolutionVersion  int64  `gorm:"not null" json:"resolution_version"`
-	InterpretorVersion int64  `gorm:"not null" json:"interpretor_version"`
+	ResolutionVersion  int64 `gorm:"not null" json:"resolution_version"`
+	InterpretorVersion int64 `gorm:"not null" json:"interpretor_version"`
 
 	Source string `gorm:"type:text;not null" json:"source"`
 }
