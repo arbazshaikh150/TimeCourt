@@ -21,6 +21,12 @@ type ResolutionTableRepository interface {
 		ctx context.Context,
 		resolutionID uuid.UUID,
 	) (*model.ResolutionTable, error)
+
+	FindResolution(
+		ctx context.Context,
+		ruleKey string,
+		ruleVersion int64,
+	) ([]*model.ResolutionTable, error)
 }
 
 type PgxResolutionTableRepository struct {
@@ -54,7 +60,7 @@ func (r *PgxResolutionTableRepository) Create(
 	// atomically.
 
 	var latestVersion int64
-
+	fmt.Println("Starting here")
 	err = tx.QueryRow(
 		ctx,
 		`
@@ -73,6 +79,7 @@ func (r *PgxResolutionTableRepository) Create(
 	).Scan(&latestVersion)
 
 	if err != nil {
+		fmt.Println("The error in insertion : ", err)
 		return fmt.Errorf(
 			"failed to generate resolution version for rule_key %q: %w",
 			resolution.RuleKey,
@@ -94,7 +101,7 @@ func (r *PgxResolutionTableRepository) Create(
 			rule_key,
 			version,
 			tenant_id,
-			current_time,
+			resolution_time,
 			resolution_policy
 		)
 		VALUES (
@@ -110,7 +117,7 @@ func (r *PgxResolutionTableRepository) Create(
 		resolution.RuleKey,
 		resolution.Version,
 		resolution.TenantID,
-		resolution.CurrentTime,
+		resolution.ResolutionTime,
 		resolution.ResolutionPolicy,
 	)
 
@@ -173,7 +180,7 @@ func (r *PgxResolutionTableRepository) Get(
 			rule_key,
 			version,
 			tenant_id,
-			current_time,
+			resolution_time,
 			resolution_policy
 		FROM resolution_tables
 		WHERE resolution_id = $1
@@ -182,7 +189,7 @@ func (r *PgxResolutionTableRepository) Get(
 		&resolution.RuleKey,
 		&resolution.Version,
 		&resolution.TenantID,
-		&resolution.CurrentTime,
+		&resolution.ResolutionTime,
 		&resolution.ResolutionPolicy,
 	)
 
@@ -195,4 +202,85 @@ func (r *PgxResolutionTableRepository) Get(
 	}
 
 	return &resolution, nil
+}
+
+func (r *PgxResolutionTableRepository) FindResolution(
+	ctx context.Context,
+	ruleKey string,
+	ruleVersion int64,
+) ([]*model.ResolutionTable, error) {
+
+	rows, err := r.db.Query(
+		ctx,
+		`
+		SELECT
+			resolution_id,
+			rule_key,
+			version,
+			tenant_id,
+			resolution_time,
+			resolution_policy
+		FROM resolution_tables
+		WHERE rule_key = $1
+			AND version = $2
+		ORDER BY resolution_time DESC
+		`,
+		ruleKey,
+		ruleVersion,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to find resolution for rule_key %q and rule_version %d: %w",
+			ruleKey,
+			ruleVersion,
+			err,
+		)
+	}
+
+	defer rows.Close()
+
+	resolutions := make(
+		[]*model.ResolutionTable,
+		0,
+	)
+
+	for rows.Next() {
+
+		var resolution model.ResolutionTable
+
+		err := rows.Scan(
+			&resolution.ResolutionID,
+			&resolution.RuleKey,
+			&resolution.Version,
+			&resolution.TenantID,
+			&resolution.ResolutionTime,
+			&resolution.ResolutionPolicy,
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf(
+				"failed to scan resolution for rule_key %q and rule_version %d: %w",
+				ruleKey,
+				ruleVersion,
+				err,
+			)
+		}
+
+		resolutions = append(
+			resolutions,
+			&resolution,
+		)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf(
+			"error while reading resolutions for rule_key %q and rule_version %d: %w",
+			ruleKey,
+			ruleVersion,
+			err,
+		)
+	}
+
+	return resolutions, nil
 }

@@ -117,6 +117,31 @@ func (r *ResolutionService) Create(
 	return nil
 }
 
-
-// Resolution Service will be called only when there is an ambiguity 
+// Resolution Service will be called only when there is an ambiguity
 // Else directly pass to interpretor service
+func (r *ResolutionService) FindResolution(
+	ctx context.Context,
+	ruleKey string,
+	ruleVersion int64,
+) ([]*model.ResolutionTable, error) {
+
+	resolutions, err := r.repository.FindResolution(
+		ctx,
+		ruleKey,
+		ruleVersion,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to find resolution for rule %s version %d: %w",
+			ruleKey,
+			ruleVersion,
+			err,
+		)
+	}
+	fmt.Println("Successfully fetched the resolutions")
+	return resolutions, nil
+}
+
+
+

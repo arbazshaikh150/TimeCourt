@@ -14,7 +14,7 @@ type ResolutionTable struct {
 	Version  int64  `gorm:"not null" json:"version"`
 	TenantID string `gorm:"type:text;not null;index" json:"tenant_id"`
 
-	CurrentTime time.Time `gorm:"not null;autoCreateTime" json:"current_time"`
+	ResolutionTime time.Time `gorm:"not null;autoCreateTime" json:"Resolution_time"`
 
 	// PostgreSQL JSONB
 	ResolutionPolicy json.RawMessage `gorm:"type:jsonb;not null" json:"resolution_policy"`

@@ -11,6 +11,7 @@ func RegisterRoutes(
 	factHandler *handler.FactHandler,
 	ruleHandler *handler.RuleHandler,
 	resolutionHandler *handler.ResolutionHandler,
+	decisionHandler *handler.DecisionHandler,
 ) {
 	mux.HandleFunc(
 		"GET /facts/{factInformationID}",
@@ -27,7 +28,6 @@ func RegisterRoutes(
 		factHandler.FindByEffectiveTime,
 	)
 
-
 	mux.HandleFunc(
 		"POST /rules",
 		ruleHandler.Create,
@@ -38,7 +38,6 @@ func RegisterRoutes(
 		ruleHandler.Find,
 	)
 
-
 	mux.HandleFunc(
 		"POST /resolutions",
 		resolutionHandler.Create,
@@ -47,5 +46,10 @@ func RegisterRoutes(
 	mux.HandleFunc(
 		"GET /resolutions/{resolutionID}",
 		resolutionHandler.Get,
+	)
+
+	mux.HandleFunc(
+		"GET /decisions/check",
+		decisionHandler.Check,
 	)
 }
