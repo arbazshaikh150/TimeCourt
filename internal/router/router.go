@@ -10,6 +10,7 @@ func RegisterRoutes(
 	mux *http.ServeMux,
 	factHandler *handler.FactHandler,
 	ruleHandler *handler.RuleHandler,
+	resolutionHandler *handler.ResolutionHandler,
 ) {
 	mux.HandleFunc(
 		"GET /facts/{factInformationID}",
@@ -26,7 +27,7 @@ func RegisterRoutes(
 		factHandler.FindByEffectiveTime,
 	)
 
-	// Rule handler
+
 	mux.HandleFunc(
 		"POST /rules",
 		ruleHandler.Create,
@@ -35,5 +36,16 @@ func RegisterRoutes(
 	mux.HandleFunc(
 		"GET /rules/find",
 		ruleHandler.Find,
+	)
+
+
+	mux.HandleFunc(
+		"POST /resolutions",
+		resolutionHandler.Create,
+	)
+
+	mux.HandleFunc(
+		"GET /resolutions/{resolutionID}",
+		resolutionHandler.Get,
 	)
 }

@@ -1,10 +1,10 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 type ResolutionTable struct {
@@ -17,7 +17,7 @@ type ResolutionTable struct {
 	CurrentTime time.Time `gorm:"not null;autoCreateTime" json:"current_time"`
 
 	// PostgreSQL JSONB
-	ResolutionPolicy datatypes.JSON `gorm:"type:jsonb;not null" json:"resolution_policy"`
+	ResolutionPolicy json.RawMessage `gorm:"type:jsonb;not null" json:"resolution_policy"`
 }
 
 func (ResolutionTable) TableName() string {

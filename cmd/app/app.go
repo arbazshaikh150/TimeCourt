@@ -77,8 +77,22 @@ func (a *App) Run() error {
 		ruleService,
 	)
 
+	// Resolution handler
+	resolutionRepository := repository.NewResolutionTableRepository(
+		db.Pool,
+	)
+
+	resolutionService := service.NewResolutionService(
+		resolutionRepository,
+		*idempotentService,
+	)
+
+	resolutionHandler := handler.NewResolutionHandler(
+		*resolutionService,
+	)
+
 	mux := http.NewServeMux()
-	router.RegisterRoutes(mux, factHandler, ruleHandler)
+	router.RegisterRoutes(mux, factHandler, ruleHandler, resolutionHandler)
 
 	httpServer := server.NewServer(cfg.ServerPort, mux)
 	fmt.Printf("Server is listening at port %s\n", cfg.ServerPort)
