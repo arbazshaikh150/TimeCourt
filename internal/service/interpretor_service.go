@@ -16,39 +16,22 @@ import (
 	"gorm.io/datatypes"
 )
 
-// TODO : Cleanup is pending
-// Interpretor evaluates the facts selected for a rule. Persisting the returned
-// DecisionRecord and DecisionDetails is deliberately kept with the caller's
-// decision repository, so evaluation remains deterministic and testable.
+// Interpretor checks the facts for a rule and creates the decision data.
 type Interpretor struct{}
 
+// NewInterpretorService creates a new rule interpreter.
 func NewInterpretorService() *Interpretor {
 	return &Interpretor{}
 }
 
-// FactTrace is the explainable, per-fact evaluation trace. It is returned in
-// addition to the JSONB fields on DecisionDetails for API consumers.
-type FactTrace struct {
-	FactKey       string            `json:"fact_key"`
-	RequiredValue string            `json:"required_value"`
-	SelectedFact  *dto.FactDetails  `json:"selected_fact,omitempty"`
-	Candidates    []dto.FactDetails `json:"candidates"`
-	Matched       bool              `json:"matched"`
-	Reason        string            `json:"reason"`
-}
-
-// InterpretorResult is ready to be stored in decision_records and
-// decision_details. Message and Trace provide the detailed explanation that is
-// not represented by columns in the current schema.
+// InterpretorResult holds the records that can be saved after a rule is checked.
 type InterpretorResult struct {
 	DecisionRecord  model.DecisionRecord  `json:"decision_record"`
 	DecisionDetails model.DecisionDetails `json:"decision_details"`
 	Message         string                `json:"message"`
-	Trace           []FactTrace           `json:"trace"`
 }
 
-// Interpret resolves conflicting facts, evaluates each required fact value,
-// and produces database-ready decision models.
+// Interpret checks all facts against the rule and returns the decision records.
 func (i *Interpretor) Interpret(
 	ctx context.Context,
 	rule *dto.RuleFetchDetails,
@@ -65,11 +48,10 @@ func (i *Interpretor) Interpret(
 	if len(resolutions) > 1 {
 		result.DecisionDetails.Status = enums.DecisionOutcomeIndeterminate
 		result.Message = "conflicting facts have more than one applicable resolution policy"
-		result.Trace = unresolvedTraces(rule.FactDetails, result.Message)
-		populateTraceData(&result, rule.FactDetails)
+		populateDecisionData(&result, rule.FactDetails, rule.FactDetails)
 		return &result, nil
 	}
-	fmt.Println("The resolution is :", resolutions)
+
 	var policy resolutionPriority
 	if len(resolutions) == 1 {
 		result.DecisionDetails.ResolutionPolicyVersion = resolutions[0].Version
@@ -77,27 +59,28 @@ func (i *Interpretor) Interpret(
 		policy = parseResolutionPriority(resolutions[0].ResolutionPolicy)
 	}
 
-	traces := make([]FactTrace, 0, len(rule.FactDetails))
+	failedFacts := make([]dto.RuleFactDetails, 0)
 	for _, required := range rule.FactDetails {
-		trace, determined := evaluateRequiredFact(required, policy)
-		traces = append(traces, trace)
+		matched, determined := evaluateRequiredFact(required, policy)
 		if !determined {
 			result.DecisionDetails.Status = enums.DecisionOutcomeIndeterminate
 			result.Message = "one or more conflicting facts cannot be resolved by the resolution policy"
+			failedFacts = append(failedFacts, required)
+			continue
+		}
+		if !matched {
+			failedFacts = append(failedFacts, required)
 		}
 	}
-	result.Trace = traces
-	populateTraceData(&result, rule.FactDetails)
+	populateDecisionData(&result, rule.FactDetails, failedFacts)
 
 	if result.DecisionDetails.Status == enums.DecisionOutcomeIndeterminate {
 		return &result, nil
 	}
-	for _, trace := range traces {
-		if !trace.Matched {
-			result.DecisionDetails.Status = enums.DecisionOutcomeNotApplicable
-			result.Message = "one or more facts do not satisfy the rule requirements"
-			return &result, nil
-		}
+	if len(failedFacts) > 0 {
+		result.DecisionDetails.Status = enums.DecisionOutcomeNotApplicable
+		result.Message = "one or more facts do not satisfy the rule requirements"
+		return &result, nil
 	}
 
 	result.DecisionDetails.Status = enums.DecisionOutcomeDetermined
@@ -105,6 +88,7 @@ func (i *Interpretor) Interpret(
 	return &result, nil
 }
 
+// newInterpretorResult creates linked decision records with their default values.
 func newInterpretorResult(rule *dto.RuleFetchDetails) InterpretorResult {
 	decisionID := uuid.New()
 	return InterpretorResult{
@@ -127,6 +111,7 @@ func newInterpretorResult(rule *dto.RuleFetchDetails) InterpretorResult {
 	}
 }
 
+// subjectID gets the subject from the first available fact.
 func subjectID(facts []dto.RuleFactDetails) string {
 	for _, fact := range facts {
 		if len(fact.Facts) > 0 {
@@ -136,30 +121,22 @@ func subjectID(facts []dto.RuleFactDetails) string {
 	return ""
 }
 
-func evaluateRequiredFact(required dto.RuleFactDetails, policy resolutionPriority) (FactTrace, bool) {
-	trace := FactTrace{FactKey: required.FactKey, RequiredValue: required.RequiredFactValue, Candidates: required.Facts}
+// evaluateRequiredFact selects one fact and checks whether it meets the rule.
+// The second result is false when a conflicting fact cannot be selected.
+func evaluateRequiredFact(required dto.RuleFactDetails, policy resolutionPriority) (matched, determined bool) {
 	if len(required.Facts) == 0 {
-		trace.Reason = "no fact is available for this requirement"
-		return trace, true
+		return false, true
 	}
 
 	selected, ok := selectFact(required.Facts, policy)
 	if !ok {
-		trace.Reason = "multiple conflicting facts exist and no resolution priority selects one"
-		return trace, false
+		return false, false
 	}
-	trace.SelectedFact = &selected
-	trace.Matched = matchesRequiredValue(required.RequiredFactValue, selected.FactValue)
-	if trace.Matched {
-		trace.Reason = "fact satisfies the required value"
-	} else {
-		trace.Reason = "fact value violates the required value"
-	}
-	return trace, true
+	return matchesRequiredValue(required.RequiredFactValue, selected.FactValue), true
 }
 
+// selectFact picks one fact using the resolution policy when values conflict.
 func selectFact(candidates []dto.FactDetails, policy resolutionPriority) (dto.FactDetails, bool) {
-	fmt.Println("The policy is : ", policy)
 	if len(candidates) == 1 || allSameValue(candidates) {
 		return candidates[0], true
 	}
@@ -180,6 +157,7 @@ func selectFact(candidates []dto.FactDetails, policy resolutionPriority) (dto.Fa
 	return best, !tied
 }
 
+// allSameValue reports whether all candidate facts have the same value.
 func allSameValue(candidates []dto.FactDetails) bool {
 	for _, candidate := range candidates[1:] {
 		if !strings.EqualFold(strings.TrimSpace(candidate.FactValue), strings.TrimSpace(candidates[0].FactValue)) {
@@ -195,16 +173,19 @@ type resolutionPriority struct {
 	Authority  []string
 }
 
+// configured reports whether the policy has at least one priority list.
 func (p resolutionPriority) configured() bool {
 	return len(p.Confidence)+len(p.Source)+len(p.Authority) > 0
 }
 
+// score gives a lower number to facts preferred by the policy.
 func (p resolutionPriority) score(fact dto.FactDetails) int {
 	return priorityRank(p.Confidence, fact.Confidence)*1_000_000 +
 		priorityRank(p.Source, fact.Source)*1_000 +
 		priorityRank(p.Authority, fact.Authority)
 }
 
+// priorityRank returns the position of a value in a priority list.
 func priorityRank(priorities []string, value string) int {
 	for index, priority := range priorities {
 		if strings.EqualFold(strings.TrimSpace(priority), strings.TrimSpace(value)) {
@@ -214,8 +195,7 @@ func priorityRank(priorities []string, value string) int {
 	return len(priorities) + 1
 }
 
-// parseResolutionPriority accepts either {"confidence":[...],"source":[...]}
-// or the same fields nested under "priority" or "priorities".
+// parseResolutionPriority reads priority lists from a resolution policy.
 func parseResolutionPriority(raw json.RawMessage) resolutionPriority {
 	var value map[string]json.RawMessage
 	if json.Unmarshal(raw, &value) != nil {
@@ -228,6 +208,7 @@ func parseResolutionPriority(raw json.RawMessage) resolutionPriority {
 	}
 }
 
+// findPriority finds one priority list, including lists inside a nested object.
 func findPriority(value map[string]json.RawMessage, name string) []string {
 	for key, raw := range value {
 		if strings.EqualFold(key, name) {
@@ -237,20 +218,12 @@ func findPriority(value map[string]json.RawMessage, name string) []string {
 			}
 		}
 	}
-	for key, raw := range value {
-		if !strings.EqualFold(key, "priority") && !strings.EqualFold(key, "priorities") {
-			continue
-		}
-		var nested map[string]json.RawMessage
-		if json.Unmarshal(raw, &nested) == nil {
-			return findPriority(nested, name)
-		}
-	}
 	return nil
 }
 
 var comparisonPattern = regexp.MustCompile(`(?i)^\s*(<=|>=|<|>|=|==|under|below|over|above)\s*([+-]?[0-9][0-9,]*(?:\.[0-9]+)?)\s*$`)
 
+// matchesRequiredValue compares a fact value with a rule value or number check.
 func matchesRequiredValue(required, actual string) bool {
 	match := comparisonPattern.FindStringSubmatch(required)
 	if len(match) == 0 {
@@ -275,6 +248,7 @@ func matchesRequiredValue(required, actual string) bool {
 	}
 }
 
+// parseNumber converts a formatted number into a value that can be compared.
 func parseNumber(value string) (float64, bool) {
 	value = strings.ReplaceAll(strings.TrimSpace(value), ",", "")
 	value = strings.TrimLeft(value, "$₹€£")
@@ -282,34 +256,31 @@ func parseNumber(value string) (float64, bool) {
 	return parsed, err == nil
 }
 
-func unresolvedTraces(facts []dto.RuleFactDetails, reason string) []FactTrace {
-	traces := make([]FactTrace, 0, len(facts))
-	for _, fact := range facts {
-		traces = append(traces, FactTrace{FactKey: fact.FactKey, RequiredValue: fact.RequiredFactValue, Candidates: fact.Facts, Reason: reason})
-	}
-	return traces
-}
-
-func populateTraceData(result *InterpretorResult, facts []dto.RuleFactDetails) {
+// populateDecisionData stores the required, available, and failed facts as JSON.
+func populateDecisionData(result *InterpretorResult, facts, failedFacts []dto.RuleFactDetails) {
 	type requiredFact struct {
 		FactKey       string `json:"fact_key"`
 		RequiredValue string `json:"required_value"`
 	}
 	requiredFacts := make([]requiredFact, 0, len(facts))
+	presentFacts := make([]dto.FactDetails, 0)
 	for _, fact := range facts {
 		requiredFacts = append(requiredFacts, requiredFact{
 			FactKey:       fact.FactKey,
 			RequiredValue: fact.RequiredFactValue,
 		})
+		presentFacts = append(presentFacts, fact.Facts...)
 	}
+	failed := make([]requiredFact, 0, len(failedFacts))
+	for _, fact := range failedFacts {
+		failed = append(failed, requiredFact{
+			FactKey:       fact.FactKey,
+			RequiredValue: fact.RequiredFactValue,
+		})
+	}
+
 	required, _ := json.Marshal(requiredFacts)
-	present, _ := json.Marshal(result.Trace)
-	failed := make([]FactTrace, 0)
-	for _, trace := range result.Trace {
-		if !trace.Matched || strings.Contains(trace.Reason, "conflicting") || strings.Contains(trace.Reason, "no fact") {
-			failed = append(failed, trace)
-		}
-	}
+	present, _ := json.Marshal(presentFacts)
 	failedJSON, _ := json.Marshal(failed)
 	result.DecisionDetails.FactRequiredData = datatypes.JSON(required)
 	result.DecisionDetails.FactPresentData = datatypes.JSON(present)
