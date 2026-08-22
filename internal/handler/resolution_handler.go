@@ -142,6 +142,7 @@ func (h *ResolutionHandler) Create(
 		"rule_key":          req.RuleKey,
 		"tenant_id":         req.TenantID,
 		"resolution_policy": req.ResolutionPolicy,
+		"version":           req.Version,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

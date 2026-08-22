@@ -22,6 +22,7 @@ type FactInformationRepository interface {
 		ctx context.Context,
 		factKey string,
 		subjectID string,
+		tenantId string,
 		timeWhereToCheck time.Time,
 		timeWhenToCheck time.Time,
 	) ([]*model.FactInformation, error)
@@ -105,9 +106,10 @@ func (r *pgxFactInformationRepository) Create(
 	INSERT INTO fact_versions (
 		fact_key,
 		subject_id,
+		tenant_id,
 		latest_version
 	)
-	VALUES ($1, $2, 1)
+	VALUES ($1, $2, $3, 1)
 	ON CONFLICT (fact_key, subject_id)
 	DO UPDATE
 	SET latest_version = fact_versions.latest_version + 1
@@ -115,6 +117,7 @@ func (r *pgxFactInformationRepository) Create(
 	`,
 		factInformation.FactKey,
 		factInformation.SubjectID,
+		factInformation.TenantID,
 	).Scan(&latestVersion)
 
 	if err != nil {
@@ -208,6 +211,7 @@ func (r *pgxFactInformationRepository) FindByEffectiveTime(
 	ctx context.Context,
 	factKey string,
 	subjectID string,
+	tenantID string,
 	timeWhereToCheck time.Time,
 	timeWhenToCheck time.Time,
 ) ([]*model.FactInformation, error) {
@@ -232,6 +236,7 @@ func (r *pgxFactInformationRepository) FindByEffectiveTime(
 		FROM fact_information
 		WHERE fact_key = $1
 			AND subject_id = $2
+			AND tenant_id = $5
 			AND effective_period @> $3::timestamptz
 			AND knowledge_time <= $4
 		`,
@@ -239,6 +244,7 @@ func (r *pgxFactInformationRepository) FindByEffectiveTime(
 		subjectID,
 		timeWhereToCheck,
 		timeWhenToCheck,
+		tenantID,
 	)
 	if err != nil {
 		return nil, err

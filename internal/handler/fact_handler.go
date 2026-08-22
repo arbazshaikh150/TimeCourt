@@ -11,6 +11,7 @@ import (
 )
 
 // Doing dependency injection
+// Added the tenant id based logic 
 type FactHandler struct {
 	service service.FactService
 }
@@ -136,6 +137,16 @@ func (h *FactHandler) FindByEffectiveTime(
 		return
 	}
 
+	tenantID := query.Get("tenant_id")
+	if tenantID == "" {
+		http.Error(
+			w,
+			"missing tenant Id",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
 	subjectID := query.Get("subject_id")
 	if subjectID == "" {
 		http.Error(
@@ -196,6 +207,7 @@ func (h *FactHandler) FindByEffectiveTime(
 		r.Context(),
 		factKey,
 		subjectID,
+		tenantID,
 		timeWhereToCheck,
 		timeWhenToCheck,
 	)

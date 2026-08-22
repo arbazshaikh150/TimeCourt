@@ -7,4 +7,5 @@ type CreateResolutionRequest struct {
 	TenantID         string          `json:"tenant_id"`
 	ResolutionPolicy json.RawMessage `json:"resolution_policy"`
 	Source           string          `json:"source"`
+	Version          int64           `json:"version"`
 }

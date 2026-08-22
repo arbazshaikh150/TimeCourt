@@ -10,33 +10,95 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+/*
+Finding the latest version (since version are increased atomically ) per tenant
+and checking the resolution based on the resolution version and then passed to interpretor
+*/
 const findApplicableRuleQuery = `
 	WITH applicable_rule AS (
-		SELECT rule_id, tenant_id, rule_key, rule_version, knowledge_time,
-			effective_start_time, effective_end_time, resolution_version,
-			interpretor_version, source
+		SELECT
+			rule_id,
+			tenant_id,
+			rule_key,
+			rule_version,
+			knowledge_time,
+			effective_start_time,
+			effective_end_time,
+			resolution_version,
+			interpretor_version,
+			source
 		FROM rules
 		WHERE rule_key = $1
 			AND effective_period @> $2::timestamptz
 			AND knowledge_time <= $3
 		ORDER BY knowledge_time DESC
 		LIMIT 1
+	),
+	latest_facts AS (
+		SELECT DISTINCT ON (
+			fi.tenant_id,
+			fi.fact_key,
+			fi.subject_id
+		)
+			fi.fact_information_id,
+			fi.tenant_id,
+			fi.fact_key,
+			fi.fact_version,
+			fi.subject_id,
+			fi.fact_effective_start_time,
+			fi.fact_effective_end_time,
+			fi.knowledge_time,
+			fi.fact_value,
+			fi.authority,
+			fi.confidence,
+			fi.source
+		FROM fact_information fi
+		WHERE fi.subject_id = $4
+			AND fi.effective_period @> $2::timestamptz
+			AND fi.knowledge_time <= $3
+		ORDER BY
+			fi.tenant_id,
+			fi.fact_key,
+			fi.subject_id,
+			fi.fact_version DESC,
+			fi.knowledge_time DESC
 	)
-	SELECT r.rule_id, r.tenant_id, r.rule_key, r.rule_version, r.knowledge_time,
-		r.effective_start_time, r.effective_end_time, r.resolution_version,
-		r.interpretor_version, r.source,
-		rd.fact_key, rd.fact_required_value,
-		fi.fact_information_id, fi.tenant_id, fi.fact_key, fi.fact_version,
-		fi.subject_id, fi.fact_effective_start_time, fi.fact_effective_end_time,
-		fi.knowledge_time, fi.fact_value, fi.authority, fi.confidence, fi.source
+	SELECT
+		r.rule_id,
+		r.tenant_id,
+		r.rule_key,
+		r.rule_version,
+		r.knowledge_time,
+		r.effective_start_time,
+		r.effective_end_time,
+		r.resolution_version,
+		r.interpretor_version,
+		r.source,
+
+		rd.fact_key,
+		rd.fact_required_value,
+
+		fi.fact_information_id,
+		fi.tenant_id,
+		fi.fact_key,
+		fi.fact_version,
+		fi.subject_id,
+		fi.fact_effective_start_time,
+		fi.fact_effective_end_time,
+		fi.knowledge_time,
+		fi.fact_value,
+		fi.authority,
+		fi.confidence,
+		fi.source
+
 	FROM applicable_rule r
-	INNER JOIN rule_details rd ON rd.rule_id = r.rule_id
-	LEFT JOIN fact_information fi
-		ON fi.fact_key = rd.fact_key
+	INNER JOIN rule_details rd
+		ON rd.rule_id = r.rule_id
+	LEFT JOIN latest_facts fi
+		ON fi.tenant_id = r.tenant_id
+		AND fi.fact_key = rd.fact_key
 		AND fi.subject_id = $4
-		AND fi.effective_period @> $2::timestamptz
-		AND fi.knowledge_time <= $3
-	ORDER BY rd.fact_key, fi.knowledge_time DESC
+	ORDER BY rd.fact_key
 `
 
 // Find returns the most recently known rule applicable at timeWhereToCheck,

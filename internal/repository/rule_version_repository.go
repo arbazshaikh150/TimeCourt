@@ -46,4 +46,3 @@ func (r *PgxRuleVersionRepository) Get(
 
 	return &ruleVersion, nil
 }
-

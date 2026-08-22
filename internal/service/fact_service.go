@@ -70,6 +70,7 @@ func (s *FactService) FindByEffectiveTime(
 	ctx context.Context,
 	factKey string,
 	subjectID string,
+	tenantID string,
 	timeWhereToCheck time.Time,
 	timeWhenToCheck time.Time,
 ) ([]*model.FactInformation, error) {
@@ -78,6 +79,7 @@ func (s *FactService) FindByEffectiveTime(
 		ctx,
 		factKey,
 		subjectID,
+		tenantID,
 		timeWhereToCheck,
 		timeWhenToCheck,
 	)

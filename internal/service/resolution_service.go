@@ -89,6 +89,7 @@ func (r *ResolutionService) Create(
 		RuleKey:          req.RuleKey,
 		TenantID:         req.TenantID,
 		ResolutionPolicy: req.ResolutionPolicy,
+		Version:          req.Version,
 	}
 
 	// 4. Repository handles the complete transaction
@@ -113,7 +114,7 @@ func (r *ResolutionService) Create(
 			err,
 		)
 	}
-
+	req.Version = resolution.Version
 	return nil
 }
 
@@ -142,6 +143,3 @@ func (r *ResolutionService) FindResolution(
 	fmt.Println("Successfully fetched the resolutions")
 	return resolutions, nil
 }
-
-
-
