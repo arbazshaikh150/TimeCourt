@@ -123,7 +123,7 @@ func (d *DecisionService) Decide(
 
 func hasAmbiguousFacts(factDetails []dto.RuleFactDetails) bool {
 	for _, factDetail := range factDetails {
-		if len(factDetail.Facts) > 2 {
+		if len(factDetail.Facts) >= 2 {
 			return true
 		}
 	}

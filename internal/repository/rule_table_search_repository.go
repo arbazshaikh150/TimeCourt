@@ -95,8 +95,7 @@ const findApplicableRuleQuery = `
 	INNER JOIN rule_details rd
 		ON rd.rule_id = r.rule_id
 	LEFT JOIN latest_facts fi
-		ON fi.tenant_id = r.tenant_id
-		AND fi.fact_key = rd.fact_key
+		ON fi.fact_key = rd.fact_key
 		AND fi.subject_id = $4
 	ORDER BY rd.fact_key
 `

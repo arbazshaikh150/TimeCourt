@@ -16,6 +16,7 @@ import (
 	"gorm.io/datatypes"
 )
 
+// TODO : Cleanup is pending
 // Interpretor evaluates the facts selected for a rule. Persisting the returned
 // DecisionRecord and DecisionDetails is deliberately kept with the caller's
 // decision repository, so evaluation remains deterministic and testable.
@@ -68,7 +69,7 @@ func (i *Interpretor) Interpret(
 		populateTraceData(&result, rule.FactDetails)
 		return &result, nil
 	}
-
+	fmt.Println("The resolution is :", resolutions)
 	var policy resolutionPriority
 	if len(resolutions) == 1 {
 		result.DecisionDetails.ResolutionPolicyVersion = resolutions[0].Version
@@ -158,6 +159,7 @@ func evaluateRequiredFact(required dto.RuleFactDetails, policy resolutionPriorit
 }
 
 func selectFact(candidates []dto.FactDetails, policy resolutionPriority) (dto.FactDetails, bool) {
+	fmt.Println("The policy is : ", policy)
 	if len(candidates) == 1 || allSameValue(candidates) {
 		return candidates[0], true
 	}

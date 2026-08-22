@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// TODO : Time unit must be same for everyone
 type FactInformationRepository interface {
 	Get(ctx context.Context, factInformationID uuid.UUID) (*model.FactInformation, error)
 	Create(
@@ -110,7 +111,7 @@ func (r *pgxFactInformationRepository) Create(
 		latest_version
 	)
 	VALUES ($1, $2, $3, 1)
-	ON CONFLICT (fact_key, subject_id)
+	ON CONFLICT (fact_key, subject_id , tenant_id)
 	DO UPDATE
 	SET latest_version = fact_versions.latest_version + 1
 	RETURNING latest_version
