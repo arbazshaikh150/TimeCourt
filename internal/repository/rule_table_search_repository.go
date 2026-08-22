@@ -31,7 +31,7 @@ const findApplicableRuleQuery = `
 		WHERE rule_key = $1
 			AND effective_period @> $2::timestamptz
 			AND knowledge_time <= $3
-		ORDER BY knowledge_time DESC
+		ORDER BY rule_version DESC
 		LIMIT 1
 	),
 	latest_facts AS (

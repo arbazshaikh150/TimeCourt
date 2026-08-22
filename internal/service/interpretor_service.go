@@ -210,12 +210,25 @@ func parseResolutionPriority(raw json.RawMessage) resolutionPriority {
 
 // findPriority finds one priority list, including lists inside a nested object.
 func findPriority(value map[string]json.RawMessage, name string) []string {
+	// Base case
 	for key, raw := range value {
 		if strings.EqualFold(key, name) {
 			var priorities []string
 			if json.Unmarshal(raw, &priorities) == nil {
 				return priorities
 			}
+		}
+	}
+
+	// Recurrence relation
+	for key, raw := range value {
+		if !strings.EqualFold(key, "priority") {
+			continue
+		}
+
+		var nested map[string]json.RawMessage
+		if json.Unmarshal(raw, &nested) == nil {
+			return findPriority(nested, name)
 		}
 	}
 	return nil
@@ -271,17 +284,17 @@ func populateDecisionData(result *InterpretorResult, facts, failedFacts []dto.Ru
 		})
 		presentFacts = append(presentFacts, fact.Facts...)
 	}
-	failed := make([]requiredFact, 0, len(failedFacts))
-	for _, fact := range failedFacts {
-		failed = append(failed, requiredFact{
-			FactKey:       fact.FactKey,
-			RequiredValue: fact.RequiredFactValue,
-		})
-	}
+	// failed := make([]requiredFact, 0, len(failedFacts))
+	// for _, fact := range failedFacts {
+	// 	failed = append(failed, requiredFact{
+	// 		FactKey:       fact.FactKey,
+	// 		RequiredValue: fact.RequiredFactValue,
+	// 	})
+	// }
 
 	required, _ := json.Marshal(requiredFacts)
 	present, _ := json.Marshal(presentFacts)
-	failedJSON, _ := json.Marshal(failed)
+	failedJSON, _ := json.Marshal(failedFacts)
 	result.DecisionDetails.FactRequiredData = datatypes.JSON(required)
 	result.DecisionDetails.FactPresentData = datatypes.JSON(present)
 	result.DecisionDetails.FailedFacts = datatypes.JSON(failedJSON)

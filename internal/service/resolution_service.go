@@ -140,6 +140,5 @@ func (r *ResolutionService) FindResolution(
 			err,
 		)
 	}
-	fmt.Println("Successfully fetched the resolutions")
 	return resolutions, nil
 }
