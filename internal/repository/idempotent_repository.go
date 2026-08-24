@@ -18,7 +18,7 @@ type IdempotentRepository interface {
 	Get(ctx context.Context, idempotentKey uuid.UUID) (*model.Idempotent, error)
 	// Another function for acquiring lock
 	// Return the source which acquires the lock
-	Lock(ctx context.Context, idempotentKey uuid.UUID, source string , tenant_id string) (*dto.IdempotentResult, error)
+	Lock(ctx context.Context, idempotentKey uuid.UUID, source string, tenant_id string) (*dto.IdempotentResult, error)
 	Commit(ctx context.Context, idempotentKey uuid.UUID, source string) error
 }
 
@@ -47,8 +47,8 @@ func (r *PgIdempotentRepository) Get(ctx context.Context, idempotentKey uuid.UUI
 			source,
 			request_digest,
 			resource_id,
-			resource_value,
-			time,
+			resource_value_ref,
+			locked_time,
 			status
 		FROM idempotency_records
 		WHERE idempotent_key = $1
@@ -61,7 +61,7 @@ func (r *PgIdempotentRepository) Get(ctx context.Context, idempotentKey uuid.UUI
 		&idempotent.RequestDigest,
 		&idempotent.ResourceID,
 		&idempotent.ResourceValueRef,
-		&idempotent.CurrentTime,
+		&idempotent.LockedTime,
 		&idempotent.Status,
 	)
 
@@ -77,7 +77,7 @@ func (r *PgIdempotentRepository) Get(ctx context.Context, idempotentKey uuid.UUI
 	return &idempotent, nil
 }
 
-func (r *PgIdempotentRepository) Lock(ctx context.Context, idempotentKey uuid.UUID, source string , tenant_id string) (*dto.IdempotentResult, error) {
+func (r *PgIdempotentRepository) Lock(ctx context.Context, idempotentKey uuid.UUID, source string, tenant_id string) (*dto.IdempotentResult, error) {
 	var result dto.IdempotentResult
 	// Try to create the idempotency record.
 	// Successfully inserting it means this request acquired the lock.

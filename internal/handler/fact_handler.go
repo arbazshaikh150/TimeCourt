@@ -11,7 +11,7 @@ import (
 )
 
 // Doing dependency injection
-// Added the tenant id based logic 
+// Added the tenant id based logic
 type FactHandler struct {
 	service service.FactService
 }
@@ -93,7 +93,7 @@ func (h *FactHandler) Create(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	err = h.service.Create(
+	createdFact, err := h.service.Create(
 		r.Context(),
 		&factInformation,
 		idempotentKey,
@@ -110,7 +110,7 @@ func (h *FactHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(factInformation); err != nil {
+	if err := json.NewEncoder(w).Encode(createdFact); err != nil {
 		http.Error(
 			w,
 			"failed to encode response",

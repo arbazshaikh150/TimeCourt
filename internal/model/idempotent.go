@@ -13,12 +13,12 @@ type Idempotent struct {
 	TenantID string `gorm:"type:text;index" json:"tenant_id"`
 	Source   string `gorm:"type:text" json:"source"`
 
-	RequestDigest string `gorm:"type:text" json:"request_digest"`
+	RequestDigest *string `gorm:"type:text" json:"request_digest"`
 
-	ResourceID       uuid.UUID `gorm:"type:uuid;index" json:"resource_id"`
+	ResourceID       *uuid.UUID `gorm:"type:uuid;index" json:"resource_id"`
 	ResourceValueRef uuid.UUID `gorm:"type:uuid" json:"resource_value"`
 
-	CurrentTime   time.Time              `gorm:"type:timestamptz;default:CURRENT_TIMESTAMP" json:"time"`
+	LockedTime    time.Time              `gorm:"type:timestamptz;default:CURRENT_TIMESTAMP" json:"time"`
 	CommittedTime *time.Time             `gorm:"type:timestamptz" json:"committed_time"`
 	Status        enums.IdempotentStatus `gorm:"type:varchar(30);not null;index" json:"status"`
 }
